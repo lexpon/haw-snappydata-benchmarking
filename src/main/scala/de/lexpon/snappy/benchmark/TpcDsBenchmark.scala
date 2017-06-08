@@ -3,7 +3,7 @@ package de.lexpon.snappy.benchmark
 import com.typesafe.config.Config
 import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, SnappySession}
 
-class CreateTables extends SnappySQLJob
+class TpcDsBenchmark extends SnappySQLJob
 {
     val sqlDelimiter: String = ";"
 
@@ -15,6 +15,12 @@ class CreateTables extends SnappySQLJob
 
 
     override def runSnappyJob(snappySession: SnappySession, jobConfig: Config): Any =
+    {
+        createSchema(snappySession)
+    }
+
+
+    private def createSchema(snappySession: SnappySession) =
     {
         val sqlFilePathList = List(
             "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_01_drop_tables.sql",
