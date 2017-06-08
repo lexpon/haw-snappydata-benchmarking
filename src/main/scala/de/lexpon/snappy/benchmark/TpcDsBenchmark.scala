@@ -3,8 +3,13 @@ package de.lexpon.snappy.benchmark
 import com.typesafe.config.Config
 import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, SnappySession}
 
+import com.typesafe.config._
+import java.io.PrintWriter
+import scala.collection.JavaConversions._
+
 class TpcDsBenchmark extends SnappySQLJob
 {
+    val config: Config = ConfigFactory.load()
     val sqlDelimiter: String = ";"
 
 
@@ -22,15 +27,8 @@ class TpcDsBenchmark extends SnappySQLJob
 
     private def createSchema(snappySession: SnappySession) =
     {
-        val sqlFilePathList = List(
-            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_01_drop_tables.sql",
-            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_02_create_tables.sql",
-            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_source_01_drop_tables.sql",
-            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_source_02_create_tables.sql",
-            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_ri.sql"
-        )
-
-        sqlFilePathList.toStream
+        val schemaFilePathList = config.getStringList("schema-files")
+        schemaFilePathList.toList.toStream
             .foreach(filePath => runSqlStatement(snappySession, filePath))
     }
 
