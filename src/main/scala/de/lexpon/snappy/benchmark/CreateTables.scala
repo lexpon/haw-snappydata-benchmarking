@@ -5,8 +5,6 @@ import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, 
 
 class CreateTables extends SnappySQLJob
 {
-    val filePathDropTables: String = "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_01_drop_tables.sql"
-    val filePathCreateTables: String = "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_02_create_tables.sql"
     val sqlDelimiter: String = ";"
 
 
@@ -18,8 +16,16 @@ class CreateTables extends SnappySQLJob
 
     override def runSnappyJob(snappySession: SnappySession, jobConfig: Config): Any =
     {
-        runSqlStatement(snappySession, filePathDropTables)
-        runSqlStatement(snappySession, filePathCreateTables)
+        val sqlFilePathList = List(
+            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_01_drop_tables.sql",
+            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_02_create_tables.sql",
+            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_source_01_drop_tables.sql",
+            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_source_02_create_tables.sql",
+            "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_ri.sql"
+        )
+
+        sqlFilePathList.toStream
+            .foreach(filePath => runSqlStatement(snappySession, filePath))
     }
 
 
