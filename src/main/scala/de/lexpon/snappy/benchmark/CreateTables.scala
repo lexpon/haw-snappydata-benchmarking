@@ -1,34 +1,39 @@
 package de.lexpon.snappy.benchmark
 
-import java.io.PrintWriter
-
 import com.typesafe.config.Config
 import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, SnappySession}
 
-object CreateTables extends SnappySQLJob {
+class CreateTables extends SnappySQLJob
+{
+    val filePathDropTables: String = "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_01_drop_tables.sql"
+    val filePathCreateTables: String = "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds_02_create_tables.sql"
+    val sqlDelimiter: String = ";"
+
+
     def getCurrentDirectory: String = new java.io.File(".").getCanonicalPath
 
-    override def isValidJob(sc: SnappySession, config: Config): SnappyJobValidation = SnappyJobValid()
 
-    override def runSnappyJob(sc: SnappySession, jobConfig: Config): Any = {
-        createTables()
+    override def isValidJob(snappySession: SnappySession, config: Config): SnappyJobValidation = SnappyJobValid()
+
+
+    override def runSnappyJob(snappySession: SnappySession, jobConfig: Config): Any =
+    {
+        runSqlStatement(snappySession, filePathDropTables)
+        runSqlStatement(snappySession, filePathCreateTables)
     }
 
-    private def createTables() = {
-        val pw = new PrintWriter("CreateTables.out")
-        pw.println()
-        pw.println("**** Creating benchmark tables using SQL ****")
 
-        val filepath: String = "/Users/lexpon/benchmarks/tpcds/0001_GB/tpcds.sql"
-        pw.println()
-        pw.println("--- Read file ---" + filepath)
-        val source = scala.io.Source.fromFile(filepath)
-        val lines = try source.mkString finally source.close()
-        pw.println("--- This is the file content: ---")
-        pw.println(lines)
+    def runSqlStatement(snappySession: SnappySession, sqlFilePath: String): Any =
+    {
+        val source = scala.io.Source.fromFile(sqlFilePath)
+        val fileContent = try source.mkString
+        finally source.close()
 
-        pw.println()
-        pw.println("**** Done ****")
-        pw.close()
+        val createSqlStatements: Array[String] = fileContent.split(sqlDelimiter)
+
+        createSqlStatements.toStream
+            .map(statement => statement.trim)
+            .filter(statement => !statement.isEmpty)
+            .foreach(statement => snappySession.sql(statement))
     }
 }
