@@ -4,16 +4,17 @@ import com.typesafe.config.Config
 import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, SnappySession}
 
 import com.typesafe.config._
-import java.io.PrintWriter
 import scala.collection.JavaConversions._
+import scala.io.Source.fromFile
+import java.io.{File, PrintWriter}
 
 class TpcDsBenchmark extends SnappySQLJob
 {
-    val config: Config = ConfigFactory.load()
-    val sqlDelimiter: String = ";"
+    private val config: Config = ConfigFactory.load()
+    private val sqlDelimiter: String = ";"
 
 
-    def getCurrentDirectory: String = new java.io.File(".").getCanonicalPath
+    private def getCurrentDirectory: String = new java.io.File(".").getCanonicalPath
 
 
     override def isValidJob(snappySession: SnappySession, config: Config): SnappyJobValidation = SnappyJobValid()
@@ -22,6 +23,8 @@ class TpcDsBenchmark extends SnappySQLJob
     override def runSnappyJob(snappySession: SnappySession, jobConfig: Config): Any =
     {
         createSchema(snappySession)
+
+        loadDataIntoDataStore(snappySession)
     }
 
 
@@ -29,13 +32,13 @@ class TpcDsBenchmark extends SnappySQLJob
     {
         val schemaFilePathList = config.getStringList("schema-files")
         schemaFilePathList.toList.toStream
-            .foreach(filePath => runSqlStatement(snappySession, filePath))
+            .foreach(filePath => runSqlStatementsFromFile(snappySession, filePath))
     }
 
 
-    def runSqlStatement(snappySession: SnappySession, sqlFilePath: String): Any =
+    private def runSqlStatementsFromFile(snappySession: SnappySession, sqlFilePath: String): Any =
     {
-        val source = scala.io.Source.fromFile(sqlFilePath)
+        val source = fromFile(sqlFilePath)
         val fileContent = try source.mkString
         finally source.close()
 
@@ -46,4 +49,39 @@ class TpcDsBenchmark extends SnappySQLJob
             .filter(statement => !statement.isEmpty)
             .foreach(statement => snappySession.sql(statement))
     }
+
+
+    private def loadDataIntoDataStore(snappySession: SnappySession): Any =
+    {
+        val pw = new PrintWriter("csv_to_dataframe_to_snappystore.out")
+
+        //        val df = snappySession.read
+        //            .format("com.databricks.spark.csv")
+        //            .option("header", "false") //reading the headers
+        //            .option("mode", "DROPMALFORMED")
+        //            .load("/Users/lexpon/benchmarks/tpcds/0001_GB/call_center.dat"); //.csv("csv/file/path") //spark 2.0 api
+
+        val tableSchema = snappySession.table("call_center").schema
+        val customerDF = snappySession.read.schema(schema = tableSchema)
+            .csv("/Users/lexpon/benchmarks/tpcds/0001_GB/call_center.dat")
+        //        customerDF.write.insertInto("call_center")
+
+        pw.println()
+        pw.println("tableSchema:")
+        pw.println(tableSchema.toString())
+
+        pw.println()
+        pw.println("finished reading csv file as a df")
+        pw.println()
+        pw.println("dataframe:")
+        pw.println()
+        //        pw.println(customerDF.show())
+        pw.println()
+
+        pw.println("try to save the df to table")
+        //        df.write.insertInto("call_center")
+
+        pw.close()
+    }
+
 }
