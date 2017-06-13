@@ -41,20 +41,21 @@ object ConfigTester
         println("CSV Files!")
 
         val conf = ConfigFactory.load()
-        val csvFileToInsertList = conf.getObject("csv-files-to-insert")
-        val baseFolder: String = csvFileToInsertList.get("base-folder").render()
+        val csvFileToInsertList = conf.getConfig("csv-files-to-insert")
+        val baseFolder = csvFileToInsertList.getString("base-folder")
 
         println("base folder: " + baseFolder)
 
-        val fileList: ConfigList = conf.getObject("csv-files-to-insert").get("file-list").asInstanceOf[ConfigList]
+        csvFileToInsertList.getConfigList("file-list").get(0).getString("file")
+
+        val fileList = csvFileToInsertList.getConfigList("file-list")
         fileList.toStream
-            .foreach(file =>
+            .foreach(fileEntry =>
             {
-                val fileConfig: ConfigObject = file.asInstanceOf[ConfigObject]
-                val fileName: String = fileConfig.get("file").render()
-                val tableName: String = fileConfig.get("table").render()
-                println("file name:  " + fileName)
-                println("table name: " + tableName)
+                val filePath: String = baseFolder + fileEntry.getString("file")
+                val tableName: String = fileEntry.getString("table")
+
+                println("try to load data from file '" + filePath + "' into table '" + tableName + "'")
             })
     }
 }
