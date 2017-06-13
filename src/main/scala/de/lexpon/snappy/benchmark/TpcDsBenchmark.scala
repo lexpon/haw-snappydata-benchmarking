@@ -55,16 +55,13 @@ class TpcDsBenchmark extends SnappySQLJob
     {
         val pw = new PrintWriter("csv_to_dataframe_to_snappystore.out")
 
-        //        val df = snappySession.read
-        //            .format("com.databricks.spark.csv")
-        //            .option("header", "false") //reading the headers
-        //            .option("mode", "DROPMALFORMED")
-        //            .load("/Users/lexpon/benchmarks/tpcds/0001_GB/call_center.dat"); //.csv("csv/file/path") //spark 2.0 api
-
         val tableSchema = snappySession.table("call_center").schema
-        val customerDF = snappySession.read.schema(schema = tableSchema)
+        val customerDF = snappySession.read
+            .schema(schema = tableSchema)
+            .format("com.databricks.spark.csv")
+            .option("header", "false")
+            .option("delimiter", "|")
             .csv("/Users/lexpon/benchmarks/tpcds/0001_GB/call_center.dat")
-        //        customerDF.write.insertInto("call_center")
 
         pw.println()
         pw.println("tableSchema:")
@@ -75,11 +72,11 @@ class TpcDsBenchmark extends SnappySQLJob
         pw.println()
         pw.println("dataframe:")
         pw.println()
-        //        pw.println(customerDF.show())
+        pw.println(customerDF.show())
         pw.println()
 
         pw.println("try to save the df to table")
-        //        df.write.insertInto("call_center")
+        customerDF.write.insertInto("call_center")
 
         pw.close()
     }
