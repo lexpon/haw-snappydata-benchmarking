@@ -6,15 +6,12 @@ import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, 
 import com.typesafe.config._
 import scala.collection.JavaConversions._
 import scala.io.Source.fromFile
-import java.io.{File, PrintWriter}
+import java.io.{File, PrintWriter, FileWriter, BufferedWriter}
 
 class LoadDataIntoTables extends SnappySQLJob
 {
     private val config: Config = ConfigFactory.load()
     private val sqlDelimiter: String = ";"
-
-
-    private def getCurrentDirectory: String = new java.io.File(".").getCanonicalPath
 
 
     override def isValidJob(snappySession: SnappySession, config: Config): SnappyJobValidation = SnappyJobValid()
@@ -28,10 +25,17 @@ class LoadDataIntoTables extends SnappySQLJob
 
     private def loadDataIntoDataStore(snappySession: SnappySession): Any =
     {
-        val pw = new PrintWriter("csv_to_dataframe_to_snappystore.out")
 
         val csvFileToInsertList = config.getConfig("csv-files-to-insert")
         val baseFolder = csvFileToInsertList.getString("base-folder")
+
+        val pw = new PrintWriter("csv_to_dataframe_to_snappystore.out")
+        pw.println("Try to load these csv files into tables: " + csvFileToInsertList.toString)
+        pw.close()
+
+        val pwErr = new PrintWriter("csv_to_dataframe_to_snappystore_error.out")
+        pwErr.println("Prepare file for logging errors...")
+        pwErr.close()
 
         val fileList = csvFileToInsertList.getConfigList("file-list")
         fileList.toStream
@@ -40,15 +44,45 @@ class LoadDataIntoTables extends SnappySQLJob
                 val filePath: String = baseFolder + fileEntry.getString("file")
                 val tableName: String = fileEntry.getString("table")
 
-                pw.println("try to load data from file '" + filePath + "' into table '" + tableName + "'")
-                loadDataIntoTable(snappySession, pw, filePath, tableName)
-            })
+                writeMsgToLog("try to load data from file '" + filePath + "' into table '" + tableName + "'")
 
-        pw.close()
+                try
+                {
+                    loadDataIntoTable(snappySession, filePath, tableName)
+                }
+                catch
+                {
+                    case e: Exception =>
+                    {
+                        writeErrToLog("Exception occured: " + e.getMessage +
+                            " - Exception: " + e.toString)
+                    }
+                }
+            })
     }
 
 
-    private def loadDataIntoTable(snappySession: SnappySession, pw: PrintWriter, filePath: String, tableName: String) =
+    private def writeMsgToLog(msg: String) =
+    {
+        val fw = new FileWriter("csv_to_dataframe_to_snappystore.out", true)
+        val bw = new BufferedWriter(fw)
+        val out = new PrintWriter(bw)
+        out.println(msg)
+        out.close()
+    }
+
+
+    private def writeErrToLog(err: String) =
+    {
+        val fw = new FileWriter("csv_to_dataframe_to_snappystore_error.out", true)
+        val bw = new BufferedWriter(fw)
+        val out = new PrintWriter(bw)
+        out.println(err)
+        out.close()
+    }
+
+
+    private def loadDataIntoTable(snappySession: SnappySession, filePath: String, tableName: String) =
     {
         val tableSchema = snappySession.table(tableName).schema
         val customerDF = snappySession.read
@@ -58,15 +92,14 @@ class LoadDataIntoTables extends SnappySQLJob
             .option("delimiter", "|")
             .csv(filePath)
 
-        pw.println("table schema for table '" + tableName + "':")
-        pw.println(tableSchema.toString())
-
-        pw.println("finished reading csv file '" + filePath + "' as a dataframe")
-        pw.println("dataframe:")
-        pw.println(customerDF.show())
-        pw.println()
-
-        pw.println("try to save the dataframe to table '" + tableName + "'")
-        customerDF.write.insertInto(tableName)
+        try
+        {
+            customerDF.write.insertInto(tableName)
+        }
+        catch
+        {
+            case e: Exception => writeErrToLog("could not write dataframe to table. table: "
+                + tableName + "; dataframe: " + customerDF.toString() + "; Exception: " + e)
+        }
     }
 }
