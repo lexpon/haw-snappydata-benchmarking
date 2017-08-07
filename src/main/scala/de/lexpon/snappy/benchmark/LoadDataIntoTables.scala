@@ -1,17 +1,17 @@
 package de.lexpon.snappy.benchmark
 
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, _}
+import java.io.{BufferedWriter, FileWriter, PrintWriter}
 import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, SnappySession}
-
-import com.typesafe.config._
 import scala.collection.JavaConversions._
-import scala.io.Source.fromFile
-import java.io.{File, PrintWriter, FileWriter, BufferedWriter}
 
 class LoadDataIntoTables extends SnappySQLJob
 {
     private val config: Config = ConfigFactory.load()
     private val sqlDelimiter: String = ";"
+
+    private val fileNameLog: String = "LoadDataIntoTablesSnappyJob_LOG.out";
+    private val fileNameErr: String = "LoadDataIntoTablesSnappyJob_ERR.out";
 
 
     override def isValidJob(snappySession: SnappySession, config: Config): SnappyJobValidation = SnappyJobValid()
@@ -29,11 +29,11 @@ class LoadDataIntoTables extends SnappySQLJob
         val csvFileToInsertList = config.getConfig("csv-files-to-insert")
         val baseFolder = csvFileToInsertList.getString("base-folder")
 
-        val pw = new PrintWriter("csv_to_dataframe_to_snappystore.out")
+        val pw = new PrintWriter(fileNameLog)
         pw.println("Try to load these csv files into tables: " + csvFileToInsertList.toString)
         pw.close()
 
-        val pwErr = new PrintWriter("csv_to_dataframe_to_snappystore_error.out")
+        val pwErr = new PrintWriter(fileNameErr)
         pwErr.println("Prepare file for logging errors...")
         pwErr.close()
 
@@ -64,7 +64,7 @@ class LoadDataIntoTables extends SnappySQLJob
 
     private def writeMsgToLog(msg: String) =
     {
-        val fw = new FileWriter("csv_to_dataframe_to_snappystore.out", true)
+        val fw = new FileWriter(fileNameLog, true)
         val bw = new BufferedWriter(fw)
         val out = new PrintWriter(bw)
         out.println(msg)
@@ -74,7 +74,7 @@ class LoadDataIntoTables extends SnappySQLJob
 
     private def writeErrToLog(err: String) =
     {
-        val fw = new FileWriter("csv_to_dataframe_to_snappystore_error.out", true)
+        val fw = new FileWriter(fileNameErr, true)
         val bw = new BufferedWriter(fw)
         val out = new PrintWriter(bw)
         out.println(err)
@@ -102,4 +102,5 @@ class LoadDataIntoTables extends SnappySQLJob
                 + tableName + "; dataframe: " + customerDF.toString() + "; Exception: " + e)
         }
     }
+
 }
