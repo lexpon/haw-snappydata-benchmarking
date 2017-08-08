@@ -1,6 +1,6 @@
 package de.lexpon.snappy.benchmark
 
-class RunSqlQueriesZeppelin
+class ClearSqlQueriesToRun
 {
 
     import java.io.{BufferedWriter, FileWriter, PrintWriter}
