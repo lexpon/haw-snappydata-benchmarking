@@ -90,7 +90,7 @@ class RunSqlQueriesAndMeasureRunTimeZeppelin
             }
         })
         writeErrToLog("could not parse query number from query: " + query)
-        return ""
+        ""
     }
 
 
@@ -105,7 +105,7 @@ class RunSqlQueriesAndMeasureRunTimeZeppelin
             val result: CachedDataFrame = snappySession.sql(query)
             val t1 = System.nanoTime()
 
-            val ns = (t1 - t0)
+            val ns = t1 - t0
             val ms = ns / 1000000
             val s = ms / 1000
             writeMsgToLog(queryNumber + "; " + ns + "; " + ms + "; " + s)
