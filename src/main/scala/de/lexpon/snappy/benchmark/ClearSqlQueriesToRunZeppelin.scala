@@ -8,8 +8,8 @@ class ClearSqlQueriesToRunZeppelin
     import scala.collection.mutable.ListBuffer
     import scala.io.Source
 
-    val logFileName: String = "RunSqlQueriesZeppelin_LOG.out"
-    val errFileName: String = "RunSqlQueriesZeppelin_ERR.out"
+    val logFileName: String = "ClearSqlQueriesToRunZeppelin_LOG.out"
+    val errFileName: String = "ClearSqlQueriesToRunZeppelin_ERR.out"
     val benchmarkFileName: String = "/home/snappydata/benchmarks/tpcds/queries/benchmark_queries.sql"
     val clearedBenchmarkFile: String = "/home/snappydata/benchmarks/tpcds/queries/benchmark_queries_cleared.sql"
 
@@ -30,7 +30,6 @@ class ClearSqlQueriesToRunZeppelin
             val fw = new FileWriter(fileName, false)
             val bw = new BufferedWriter(fw)
             val out = new PrintWriter(bw)
-            out.println("")
             out.close()
         })
     }
