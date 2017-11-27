@@ -1,6 +1,5 @@
 package de.lexpon.snappy.utils
 
-import com.typesafe.config.Config
 import org.apache.spark.sql.{SnappyJobValid, SnappyJobValidation, SnappySQLJob, SnappySession}
 
 import com.typesafe.config._
@@ -11,7 +10,14 @@ object ConfigTester
 {
     def main(args: Array[String]): Unit =
     {
-        println("Hello, world!")
+        //        schemaFiles()
+        csvFiles()
+    }
+
+
+    private def schemaFiles() =
+    {
+        println("Schema Files!")
 
         val conf = ConfigFactory.load()
         val schemaFilePathList = conf.getStringList("schema-files")
@@ -27,5 +33,29 @@ object ConfigTester
         )
         sqlFilePathList.toStream
             .foreach(filePath => println("filepath: {" + filePath + "}"))
+    }
+
+
+    private def csvFiles() =
+    {
+        println("CSV Files!")
+
+        val conf = ConfigFactory.load()
+        val csvFileToInsertList = conf.getConfig("csv-files-to-insert")
+        val baseFolder = csvFileToInsertList.getString("base-folder")
+
+        println("base folder: " + baseFolder)
+
+        csvFileToInsertList.getConfigList("file-list").get(0).getString("file")
+
+        val fileList = csvFileToInsertList.getConfigList("file-list")
+        fileList.toStream
+            .foreach(fileEntry =>
+            {
+                val filePath: String = baseFolder + fileEntry.getString("file")
+                val tableName: String = fileEntry.getString("table")
+
+                println("try to load data from file '" + filePath + "' into table '" + tableName + "'")
+            })
     }
 }
